@@ -1,13 +1,15 @@
 from ubluetooth import BLE, UUID
 from micropython import const
 from struct import unpack
-from machine import Timer
+from machine import Timer, reset
 from time import time, sleep_ms
 import urequests
 import ubinascii
+import ujson
 import network
 
-__version__ = "0.1.0"
+
+__version__ = "0.2.0"
 
 _IRQ_SCAN_RESULT                     = const(1 << 4)
 _IRQ_SCAN_COMPLETE                   = const(1 << 5)
@@ -26,13 +28,7 @@ uuid_read   = UUID("00001525-1212-efde-1523-785feabcd123")
 
 #### CONFIG ####
 
-ssid, pw           = "SSID", "PWD" # WIFI config
-radoneye_addr      = "AA:BB:CC:DD:EE:FF" # RadonEye BT mac address
-radoneye_addr_type = 1
-readout_interval   = 20 # Readout interval in seconds
-homematic_addr     = "http://127.0.0.1/"
-)
-# TODO: debug mode
+config = ujson.load(open("config.json", 'r'))
 
 ################
 
@@ -195,8 +191,8 @@ def bt_irq(event, data): # Register event handler
         print("Decoded radon value:", radon_value)
         bt.gap_disconnect(conn_handle)
         
-        print("Sending HTTP request:", homematic_addr.format(radon=radon_value))
-        resp = urequests.get(homematic_addr.format(radon=radon_value))
+        print("Sending HTTP request:", config["homematic_addr"].format(radon=radon_value, ise_id=config["homematic_ise_id"]))
+        resp = urequests.get(config["homematic_addr"].format(radon=radon_value, ise_id=config["homematic_ise_id"]))
         if resp:
             resp.close()
             print("Done.")
@@ -206,8 +202,12 @@ def bt_irq(event, data): # Register event handler
 
 def connect_and_read_radon(*_):
     print("\n--- STARTING RADON READOUT ROUTINE ---")
-    if wifi_connect(ssid, pw):
-        bt.gap_connect(radoneye_addr_type,  addr_encode(radoneye_addr), 2000)
+    if wifi_connect(config["ssid"], config["pass"]):
+        bt.gap_connect(
+            config["radoneye_addr_type"],
+            addr_encode(config["radoneye_addr"]),
+            2000
+        )
 
 
 bt = BLE()
@@ -215,11 +215,19 @@ bt = BLE()
 bt.irq(bt_irq)
 bt.active(True)
 
-wifi_connect(ssid, pw)
+wifi_connect(config["ssid"], config["pass"])
 
 timer_reader = Timer(1)
 timer_reader.init(
     mode=Timer.PERIODIC,
-    period=readout_interval*1000,
+    period=config["readout_interval"]*1000,
     callback=connect_and_read_radon
 )
+
+if config["reset_timer"] > 0:
+    timer_reader = Timer(2)
+    timer_reader.init(
+        mode=Timer.PERIODIC,
+        period=config["reset_timer"]*1000*3600,
+        callback=reset
+    )

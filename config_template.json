@@ -1,0 +1,10 @@
+{
+    "ssid": "SSID",
+    "pass": "PASS",
+    "radoneye_addr": "AA:BB:CC:DD:EE:FF",
+    "radoneye_addr_type": 1,
+    "readout_interval": 20,
+    "homematic_addr": "http://0.0.0.0/addons/xmlapi/statechange.cgi?ise_id={ise_id}&new_value={radon}",
+    "homematic_ise_id": "12345",
+    "reset_timer": 24 
+}
