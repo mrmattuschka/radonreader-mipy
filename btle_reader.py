@@ -187,8 +187,8 @@ def bt_irq(event, data): # Register event handler
         # A gattc_read() has completed.
         conn_handle, value_handle, char_data = data
         print("\nRead value", value_handle, "\nData:", char_data)
-        radon_value = unpack('<f', char_data[2:6])[0]
-        print("Decoded radon value:", radon_value)
+        radon_value = unpack('<f', char_data[2:6])[0] * 37 # Unpack, convert to Bq
+        print("Decoded radon value:", radon_value, "Bq")
         bt.gap_disconnect(conn_handle)
         
         print("Sending HTTP request:", config["homematic_addr"].format(radon=radon_value, ise_id=config["homematic_ise_id"]))
