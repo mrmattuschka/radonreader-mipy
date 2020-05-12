@@ -25,38 +25,13 @@ uuid_svc    = UUID("00001523-1212-efde-1523-785feabcd123")
 uuid_write  = UUID("00001524-1212-efde-1523-785feabcd123")
 uuid_read   = UUID("00001525-1212-efde-1523-785feabcd123")
 
+config_file = "config.json"
+
 global read_handle, write_handle
 global scan_data
 scan_data = []
 write_handle = None
 read_handle = None
-
-
-def main():
-    config = ujson.load(open("config.json", 'r'))
-
-    if config["reset_timer"] > 0:
-        timer_reader = Timer(2)
-        timer_reader.init(
-            mode=Timer.PERIODIC,
-            period=config["reset_timer"]*1000*3600,
-            callback=reset
-        )
-
-    bt = BLE()
-
-    bt.irq(bt_irq)
-    bt.active(True)
-
-    wifi_connect(config["ssid"], config["pass"])
-
-    timer_reader = Timer(1)
-    timer_reader.init(
-        mode=Timer.PERIODIC,
-        period=config["readout_interval"]*1000,
-        callback=connect_and_read_radon
-    )
-
 
 def wifi_connect(ssid, pw):
     sta_if = network.WLAN(network.STA_IF)
@@ -229,5 +204,27 @@ def connect_and_read_radon(*_):
         )
 
 
-if __name__ == "__main__":
-    main()
+config = ujson.load(open(config_file, 'r'))
+
+if config["reset_timer"] > 0:
+    timer_reader = Timer(2)
+    timer_reader.init(
+        mode=Timer.PERIODIC,
+        period=config["reset_timer"]*1000*3600,
+        callback=reset
+    )
+
+bt = BLE()
+
+bt.irq(bt_irq)
+bt.active(True)
+
+wifi_connect(config["ssid"], config["pass"])
+
+timer_reader = Timer(1)
+timer_reader.init(
+    mode=Timer.PERIODIC,
+    period=config["readout_interval"]*1000,
+    callback=connect_and_read_radon
+)
+
