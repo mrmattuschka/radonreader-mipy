@@ -33,6 +33,9 @@ scan_data = []
 write_handle = None
 read_handle = None
 
+def reset_wrap(*_):
+    reset()
+
 def wifi_connect(ssid, pw):
     sta_if = network.WLAN(network.STA_IF)
     timeout = time() + 30 # 30 s timeout for connecting to wifi
