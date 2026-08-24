@@ -1,0 +1,30 @@
+[project]
+name = "radonreader-mipy"
+version = "0.1.0"
+description = "An ESP32-powered bridge between the RadonEye's BLE interface and your smart home system"
+
+[tool.ruff]
+line-length = 140
+target-version = "py39"
+builtins = ["ptr", "ptr8", "ptr16", "ptr32", "uint", "micropython", "const"]
+
+[tool.ruff.lint]
+extend-select = ["PYI"]
+ignore = [
+    "F401",   # unused import
+    "F403",   # import *
+    "E402",   # module level import not at top of file - common in test snippets
+    "PYI021", # Docstrings should not be included in stubs (but we want them for MicroPython)
+    "PYI044", # `from __future__ import annotations` - used in generated stubs
+    "PYI048", # Function body must contain exactly one statement - docstrings count
+    "PYI011", # Only simple default values allowed for typed arguments - we want actual defaults
+    "PYI014", # Only simple default values allowed for arguments - we want actual defaults
+    "PYI029", # __str__ and __repr__ are useful in MicroPython stubs
+]
+
+[project.optional-dependencies]
+# install to folder typings
+# uv pip install -r pyproject.toml --extra stubs --target typings
+stubs = [
+  "micropython-esp32-stubs==1.28.0.*"
+]

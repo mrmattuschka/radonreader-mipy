@@ -1,11 +1,11 @@
-from ubluetooth import BLE, UUID, FLAG_READ, FLAG_WRITE, FLAG_NOTIFY
-from micropython import const
-from random import random
 import struct
+from random import random
+
 import ubinascii
+from micropython import const
+from ubluetooth import BLE, FLAG_NOTIFY, FLAG_READ, FLAG_WRITE, UUID
 
-
-__version__ = "0.2.0"
+__version__ = "0.2.1"
 
 local_name = "RadonEye-Spoofer"
 adv_data = bytes([len(local_name)+1])+b"\x09"+local_name.encode("utf-8")
@@ -54,7 +54,7 @@ def bt_irq(event, data): # Register event handler
         if (attr_handle == rdw) & (bt.gatts_read(rdw) == b"P"): #\x50
             bt.gatts_write(rdw, b"\x00")
             radon_reading = random()
-            print("Triggered radon readout. Writing {} to RDR.".format(radon_reading))
+            print(f"Triggered radon readout. Writing {radon_reading} to RDR.")
             bt.gatts_write(rdr, b"\x00\x00" + struct.pack('<f', radon_reading))
 
 bt = BLE()

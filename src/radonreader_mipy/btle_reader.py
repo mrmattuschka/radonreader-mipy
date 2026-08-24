@@ -1,15 +1,16 @@
-from ubluetooth import BLE, UUID
-from micropython import const
 from struct import unpack
-from machine import Timer, reset
-from time import time, sleep_ms
-import urequests
+from time import sleep_ms, time
+
+import network
 import ubinascii
 import ujson
-import network
+import urequests
+from machine import Timer, reset
+from micropython import const
+from ubluetooth import BLE, UUID
+from sync_ubt import SyncBLE
 
-
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 
 _IRQ_SCAN_RESULT                     = const(1 << 4)
 _IRQ_SCAN_COMPLETE                   = const(1 << 5)
@@ -103,7 +104,7 @@ def bt_irq(event, data): # Register event handler
         print("\n--- BT CONNECTED ---")
         conn_handle, addr_type, addr = data
         print("conn_handle:", conn_handle, "\naddr:", addr_decode(addr))
-        
+
         # Set up timer to disconnect after 10s
         timer_dc = Timer(0)
         timer_dc.init(
@@ -111,12 +112,12 @@ def bt_irq(event, data): # Register event handler
             period=10000,
             callback=lambda t: bt.gap_disconnect(conn_handle)
         )
-        
+
         bt.gattc_discover_services(conn_handle)
 
     elif event == _IRQ_PERIPHERAL_DISCONNECT:
         conn_handle, addr_type, addr = data
-        
+
         if conn_handle == 65535:
             print("\nERROR: BT connection failed!")
         else:
@@ -124,7 +125,7 @@ def bt_irq(event, data): # Register event handler
 
     elif event == _IRQ_GATTC_SERVICE_RESULT:
         conn_handle, start_handle, end_handle, uuid = data
-        
+
         print(
             "\n--- SERVICE ---",
             "\nconn_handle:", conn_handle,
@@ -140,7 +141,7 @@ def bt_irq(event, data): # Register event handler
 
     elif event == _IRQ_GATTC_CHARACTERISTIC_RESULT:
         conn_handle, def_handle, value_handle, properties, uuid = data
-        
+
         print(
             "\n--- CHARACTERISIC ---",
             "\nconn_handle:", conn_handle,
@@ -173,7 +174,7 @@ def bt_irq(event, data): # Register event handler
         print("Write status:", status)
         if status == 0:
             bt.gattc_read(conn_handle, read_handle)
-            
+
             # Reset handles
             write_handle = None
             read_handle = None
@@ -187,7 +188,7 @@ def bt_irq(event, data): # Register event handler
         radon_value = unpack('<f', char_data[2:6])[0] * 37 # Unpack, convert to Bq
         print("Decoded radon value:", radon_value, "Bq")
         bt.gap_disconnect(conn_handle)
-        
+
         print("Sending HTTP request:", config["homematic_addr"].format(radon=radon_value, ise_id=config["homematic_ise_id"]))
         resp = urequests.get(config["homematic_addr"].format(radon=radon_value, ise_id=config["homematic_ise_id"]))
         if resp:
@@ -230,4 +231,3 @@ timer_reader.init(
     period=config["readout_interval"]*1000,
     callback=connect_and_read_radon
 )
-
