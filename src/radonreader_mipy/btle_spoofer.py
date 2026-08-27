@@ -48,11 +48,11 @@ def bt_irq(event, data): # Register event handler
         bt.gap_advertise(100, adv_data=adv_data, connectable=True)
     elif event == _IRQ_GATTS_WRITE:
         conn_handle, attr_handle = data # Don't know what conn_handle is, but attr_handle is the handle of the char written to
-        attr_handle = 16 # TODO find out why we need to override this - why does the value/attribute handle change between central and peripheral?
+        # NOTE: I have observed the attr_handle being different from what we're actually writing to!
 
         print("GATTC write has occured: conn.", conn_handle, "on attr_handle", attr_handle, ", new value:", bt.gatts_read(attr_handle))
 
-        if (attr_handle == rdw): # & (bt.gatts_read(rdw) == b"P"): #\x50
+        if bt.gatts_read(rdw) == b"\x50": #\x50
             bt.gatts_write(rdw, b"\x00")
             radon_reading = random()
             print(f"Triggered radon readout. Writing {radon_reading} to RDR.")
