@@ -9,6 +9,11 @@ __version__ = "0.2.1"
 
 local_name = "RadonEye-Spoofer"
 adv_data = bytes([len(local_name)+1])+b"\x09"+local_name.encode("utf-8")
+neopixel = True
+
+if neopixel:
+    from led import LED
+    neopixel = LED()
 
 _IRQ_CENTRAL_CONNECT                 = const(1 << 0)
 _IRQ_CENTRAL_DISCONNECT              = const(1 << 1)
@@ -57,6 +62,8 @@ def bt_irq(event, data): # Register event handler
             radon_reading = random()
             print(f"Triggered radon readout. Writing {radon_reading} to RDR.")
             bt.gatts_write(rdr, b"\x00\x00" + struct.pack('<f', radon_reading))
+            if neopixel:
+                neopixel.breathe((0, 0, 255))
 
 bt = BLE()
 bt.active(True)
