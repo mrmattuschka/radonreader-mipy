@@ -14,10 +14,11 @@ Radon level readouts are sent to a HomeMatic system via the web API.
 | **pass**               | PASS                                                                           | WiFi password                                                            |
 | **radoneye_addr**      | AA:BB:CC:DD:EE:FF                                                              | Radoneye BT MAC address                                                  |
 | **radoneye_addr_type** | 1                                                                              | Radoneye BTLE address type (1 for RadonEye, 0 for spoofer)               |
-| **readout_interval**   | 20                                                                             | Radon readout interval in seconds                                        |
+| **readout_interval**   | 60                                                                             | Radon readout interval in seconds                                        |
 | **homematic_addr**     | http://0.0.0.0/addons/xmlapi/statechange.cgi?ise_id={ise_id}&new_value={radon} | HomeMatic web API address                                                |
 | **homematic_ise_id**   | 12345                                                                          | HomeMatic Radon ISE ID                                                   |
-| **reset_timer**        | 24                                                                             | Interval for automated ESP32 reboot in hours (set to 0 to disable) |
+| **reset_timer**        | 3600                                                                           | Interval for automated ESP32 reboot in seconds (set to 0 to disable) |
+| **status_led**         | true                                                                           | Use status LED (requires a Waveshare ESP32-C6 Zero with a NeoPixel) |
 
 ### RadonEye spoofer
 The repo contains a utility named `blte_spoofer.py`, which can be used to imitate RadonEye behavior using another ESP32 for debugging.

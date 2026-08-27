@@ -4,7 +4,7 @@ from time import time, sleep_ms
 import network
 import ujson
 import urequests
-from machine import WDT
+from machine import WDT, deepsleep
 from ubluetooth import UUID
 
 from sync_ubt import SyncBLE
@@ -68,18 +68,16 @@ def connect_and_read_radon():
     print(radoneye_write_chr[0].value_handle)
     status = radoneye_write_chr[0].write(b"\x50")
     print("Write status:", status)
-
-    sleep_ms(500)
-
+    sleep_ms(100)
     print("Locating Radon readout CHR...")
     radoneye_read_chr = radoneye_svc[0].get_characteristic(RDR_UUID)
     assert radoneye_read_chr
-
 
     radon_value = radoneye_read_chr[0].read()
     assert radon_value
     radon_value = unpack('<f', radon_value[2:6])[0] * 37 # Unpack, convert to Bq
     print("Decoded radon value:", radon_value, "Bq")
+
 
     url = config["homematic_addr"].format(radon=radon_value, ise_id=config["homematic_ise_id"])
     print("Sending HTTP request:", url)
@@ -94,3 +92,19 @@ if config["reset_timer"] > 0:
     timer_reader = WDT(timeout=config["reset_timer"] * 1000)
 
 sbt = SyncBLE()
+if config["status_led"]:
+    from led import LED
+    led = LED()
+else:
+    led = None
+
+try:
+    connect_and_read_radon()
+    if led:
+        led.breathe((255, 0, 0), times=1)
+except Exception as e:
+    print("Error:", e)
+    if led:
+        led.breathe((0, 255, 0), times=3)
+finally:
+    deepsleep(config["readout_interval"] * 1000)
