@@ -1,53 +1,58 @@
 from struct import unpack
-from time import time, sleep_ms
+from time import sleep_ms, time
 
 import network
 import ujson
 import urequests
 from machine import WDT, deepsleep
-from ubluetooth import UUID
-
 from sync_ubt import SyncBLE
+from ubluetooth import UUID
 
 __version__ = "2.0.0"
 
 SVC_UUID = UUID("00001523-1212-efde-1523-785feabcd123")
-RDW_UUID = UUID("00001524-1212-efde-1523-785feabcd123") # Notify/write characteristic UUID -> this is where the reader writes
-RDR_UUID = UUID("00001525-1212-efde-1523-785feabcd123") # Radon readout characteristic UUID
+# Write characteristic UUID -> where the reader triggers an update
+RDW_UUID = UUID("00001524-1212-efde-1523-785feabcd123")
+# Radon readout characteristic UUID
+RDR_UUID = UUID("00001525-1212-efde-1523-785feabcd123")
 
 config_file = "config.json"
 
+
 def wifi_connect(ssid: str, pw: str) -> bool:
     sta_if = network.WLAN(network.STA_IF)
-    timeout = time() + 30 # 30 s timeout for connecting to wifi
-
-    if not sta_if.isconnected():
-        print('Connecting to network...')
-        sta_if.active(True)
-        sta_if.connect(ssid, pw)
-        while (not sta_if.isconnected()) or (time() > timeout) :
-            pass
 
     if sta_if.isconnected():
-        print('Connected. Network config:', sta_if.ifconfig())
+        print("Connected. Network config:", sta_if.ifconfig())
+        return True
+
+    print("Connecting to network...")
+    sta_if.active(True)
+    sta_if.connect(ssid, pw)
+    timeout = time() + 30  # 30 s timeout for connecting to wifi
+    while not sta_if.isconnected() and time() < timeout:
+        pass
+
+    if sta_if.isconnected():
+        print("Connected. Network config:", sta_if.ifconfig())
     else:
         print("ERROR: Connection failed/timeout while connecting.")
 
     return sta_if.isconnected()
 
+
 def connect_and_read_radon():
     print("\n--- STARTING RADON READOUT ROUTINE ---")
-    assert wifi_connect(config["ssid"], config["pass"])
+    if not wifi_connect(config["ssid"], config["pass"]):
+        raise RuntimeError("WiFi connection failed")
 
-    radoneye = sbt.connect(
-        config["radoneye_addr_type"],
-        config["radoneye_addr"]
-    )
-    assert radoneye
+    radoneye = sbt.connect(config["radoneye_addr_type"], config["radoneye_addr"])
+    if not radoneye:
+        raise RuntimeError("BLE connection failed")
 
     # Get device name from generic access SVC
-    devname = "Unknown device"
     generic_acc = radoneye.get_service(0x1800)
+    devname = "Unknown device"
     if generic_acc:
         devname_chr = generic_acc[0].get_characteristic(0x2A00)
         if devname_chr:
@@ -56,44 +61,51 @@ def connect_and_read_radon():
                 devname = devname.decode()
                 print("Found RadonEye device:", devname)
 
-    # Find Komoot SVC & CHR, register notify
+    # Find the RadonEye SVC & CHR
     radoneye_svc = radoneye.get_service(SVC_UUID)
-    assert radoneye_svc
+    if not radoneye_svc:
+        raise RuntimeError("RadonEye service not found")
 
     print("Found RadonEye SVC, locating CHR...")
     radoneye_write_chr = radoneye_svc[0].get_characteristic(RDW_UUID)
-    assert radoneye_write_chr
+    if not radoneye_write_chr:
+        raise RuntimeError("Write characteristic not found")
 
-    print("Found Komoot CHR, triggering update...")
-    print(radoneye_write_chr[0].value_handle)
+    print("Found write CHR, triggering update...")
     status = radoneye_write_chr[0].write(b"\x50")
     print("Write status:", status)
     sleep_ms(100)
     print("Locating Radon readout CHR...")
     radoneye_read_chr = radoneye_svc[0].get_characteristic(RDR_UUID)
-    assert radoneye_read_chr
+    if not radoneye_read_chr:
+        raise RuntimeError("Read characteristic not found")
 
     radon_value = radoneye_read_chr[0].read()
-    assert radon_value
-    radon_value = unpack('<f', radon_value[2:6])[0] * 37 # Unpack, convert to Bq
+    if not radon_value:
+        raise RuntimeError("Radon value read returned empty")
+    radon_value = unpack("<f", radon_value[2:6])[0] * 37  # Unpack, convert to Bq
     print("Decoded radon value:", radon_value, "Bq")
 
-
-    url = config["homematic_addr"].format(radon=radon_value, ise_id=config["homematic_ise_id"])
+    url = config["homematic_addr"].format(
+        radon=radon_value,
+        ise_id=config["homematic_ise_id"],
+    )
     print("Sending HTTP request:", url)
     resp = urequests.get(url)
-    assert resp
     resp.close()
     print("Done.")
 
-config = ujson.load(open(config_file, 'r'))
+
+with open(config_file, "r") as f:
+    config = ujson.load(f)
 
 if config["reset_timer"] > 0:
-    timer_reader = WDT(timeout=config["reset_timer"] * 1000)
+    WDT(timeout=config["reset_timer"] * 1000)
 
 sbt = SyncBLE()
 if config["status_led"]:
     from led import LED
+
     led = LED()
 else:
     led = None

@@ -4,7 +4,7 @@ Radon level readouts are sent to a HomeMatic system via the web API.
 
 ### Setup
 1. Copy `config_template.json` to `config.json`, adjust parameters.
-2. Copy config file to ESP32, copy `btle_reader.py` to ESP32 as `main.py`
+2. Copy config file to ESP32, copy contents `src/radonreader_mipy` to ESP32.
 3. Reboot ESP32, check serial output to ensure everything is working.
 
 ### Config
@@ -21,7 +21,7 @@ Radon level readouts are sent to a HomeMatic system via the web API.
 | **status_led**         | true                                                                           | Use status LED (requires a Waveshare ESP32-C6 Zero with a NeoPixel) |
 
 ### RadonEye spoofer
-The repo contains a utility named `blte_spoofer.py`, which can be used to imitate RadonEye behavior using another ESP32 for debugging.
+The repo contains a utility named `src/radonreader_mipy/blte_spoofer.py`, which can be used to imitate RadonEye behavior using another ESP32 for debugging.
 To use it, simply copy it to another ESP32 as its `main.py`.  
 **Important:** to connect to it, make sure to set the BTLE address type in the reader's config file to 0.
 
