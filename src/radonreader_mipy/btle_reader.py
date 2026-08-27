@@ -1,5 +1,5 @@
 from struct import unpack
-from time import time
+from time import time, sleep_ms
 
 import network
 import ujson
@@ -7,11 +7,11 @@ import urequests
 from machine import WDT
 from ubluetooth import UUID
 
-from .sync_ubt import SyncBLE
+from sync_ubt import SyncBLE
 
 __version__ = "2.0.0"
 
-SVC_UUID    = UUID("00001523-1212-efde-1523-785feabcd123")
+SVC_UUID = UUID("00001523-1212-efde-1523-785feabcd123")
 RDW_UUID = UUID("00001524-1212-efde-1523-785feabcd123") # Notify/write characteristic UUID -> this is where the reader writes
 RDR_UUID = UUID("00001525-1212-efde-1523-785feabcd123") # Radon readout characteristic UUID
 
@@ -58,18 +58,23 @@ def connect_and_read_radon():
 
     # Find Komoot SVC & CHR, register notify
     radoneye_svc = radoneye.get_service(SVC_UUID)
-    assert radoneye_svc:
+    assert radoneye_svc
 
     print("Found RadonEye SVC, locating CHR...")
     radoneye_write_chr = radoneye_svc[0].get_characteristic(RDW_UUID)
     assert radoneye_write_chr
 
     print("Found Komoot CHR, triggering update...")
-    radoneye_write_chr[0].write(b"\x50")
+    print(radoneye_write_chr[0].value_handle)
+    status = radoneye_write_chr[0].write(b"\x50")
+    print("Write status:", status)
+
+    sleep_ms(500)
 
     print("Locating Radon readout CHR...")
     radoneye_read_chr = radoneye_svc[0].get_characteristic(RDR_UUID)
     assert radoneye_read_chr
+
 
     radon_value = radoneye_read_chr[0].read()
     assert radon_value

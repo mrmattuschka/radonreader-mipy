@@ -2,7 +2,6 @@ __version__ = "0.1.1"
 
 import struct
 from time import sleep_ms, time
-from typing import List, Union
 
 import ubinascii
 from bluetooth import BLE, UUID
@@ -182,7 +181,7 @@ class Descriptor:
         else:
             self.ble.gattc_write(self.conn_handle, self.dsc_handle, data, 0)
 
-    def read(self) -> Union[bytes, None]:
+    def read(self) -> bytes:
         """
         Read the descriptor's value.
 
@@ -277,7 +276,7 @@ class Characteristic:
         else:
             raise KeyError("No descriptors found for UUID {}".format(uuid))
 
-    def write(self, data, mode=0) -> Union[bytes, None]:
+    def write(self, data, mode=0) -> bytes:
         """
         Write to the characteristic's value.
 
@@ -305,7 +304,7 @@ class Characteristic:
         else:
             self.ble.gattc_write(self.conn_handle, self.value_handle, data, 0)
 
-    def read(self, offset=0) -> Union[bytes, None]:
+    def read(self, offset=0) -> bytes:
         """
         Read the characteristic's value.
 
@@ -535,11 +534,6 @@ class SyncBLE:
             Logging function to call for logging. If no logging function is passed, debug output will be printed to console.
         """
         self.busy = _Busy()
-
-        self.ble = BLE()
-        self.ble.irq(self.bt_irq)
-        self.ble.active(True)
-
         self._timeout = timeout
         self._scan_devices = {}
         self._last_conn = None
@@ -555,6 +549,10 @@ class SyncBLE:
                 self.log = debug_logger
             else:
                 raise ValueError("debug_logger is not a callable.")
+
+        self.ble = BLE()
+        self.ble.irq(self.bt_irq)
+        self.ble.active(True)
 
     def scan(self, duration_ms=10000, *args):
         """
