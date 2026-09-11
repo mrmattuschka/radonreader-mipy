@@ -113,10 +113,8 @@ else:
 try:
     connect_and_read_radon()
     if led:
-        led.breathe((255, 0, 0), times=1)
+        led.breathe((64, 0, 0), times=1)
 except Exception as e:
     print("Error:", e)
     if led:
-        led.breathe((0, 255, 0), times=3)
-finally:
-    deepsleep(config["readout_interval"] * 1000)
+        led.breathe((0, 64, 0), times=3)
